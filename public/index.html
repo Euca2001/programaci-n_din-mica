@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Aplicación cliente-servidor en la nube para almacenar y compartir archivos con SFTP"/>
+  <title>Cloud File Share — Ejercicio 2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0e1a; --card: #1a2235; --border: rgba(99,179,237,0.15);
+      --accent: #63b3ed; --accent2: #68d391; --accent3: #f6ad55;
+      --text: #e2e8f0; --muted: #718096;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: radial-gradient(ellipse 80% 50% at 20% 20%, rgba(99,179,237,0.08) 0%, transparent 60%),
+                  radial-gradient(ellipse 60% 40% at 80% 80%, rgba(104,211,145,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 2.5rem; background: rgba(17,24,39,0.8);
+      backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo { font-weight: 700; color: var(--accent); }
+    .badge { background: rgba(104,211,145,0.15); color: var(--accent2); border: 1px solid rgba(104,211,145,0.3);
+      padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .btn-nav { background: transparent; color: var(--accent); border: 1px solid var(--border);
+      padding: 0.5rem 1.2rem; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+    .btn-nav:hover { background: rgba(99,179,237,0.1); }
+    .hero { text-align: center; padding: 5rem 2rem 3rem; position: relative; }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 1rem;
+    }
+    .hero p { color: var(--muted); font-size: 1.05rem; max-width: 600px; margin: 0 auto 2rem; line-height: 1.7; }
+    .hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #4299e1); color: #0a0e1a;
+      padding: 0.85rem 2rem; border-radius: 10px; font-weight: 700; text-decoration: none; }
+    .btn-outline { color: var(--text); border: 1px solid var(--border); padding: 0.85rem 2rem;
+      border-radius: 10px; font-weight: 600; text-decoration: none; }
+    .status-bar {
+      background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: center; font-size: 0.85rem;
+    }
+    .features {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem; padding: 2rem 2.5rem 4rem; max-width: 1100px; margin: 0 auto;
+    }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.8rem; }
+    .card-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .card h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+    .card p { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+    .tag { display: inline-block; margin-top: 1rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+    .tag-green { background: rgba(104,211,145,0.15); color: var(--accent2); }
+    .tag-blue  { background: rgba(99,179,237,0.15);  color: var(--accent); }
+    .tag-orange{ background: rgba(246,173,85,0.15);  color: var(--accent3); }
+    footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <nav>
+    <span class="nav-logo">☁️ Cloud File Share</span>
+    <span class="badge">HTTPS + SFTP + SQLite</span>
+    <a href="/login?redirect=/files" class="btn-nav">Gestor de Archivos →</a>
+  </nav>
+
+  <section class="hero">
+    <h1>Almacenamiento y<br/>Compartición en la Nube</h1>
+    <p>Aplicación cliente-servidor desplegada en contenedor Docker. Almacena archivos vía web (HTTPS) o SFTP, con base de datos SQLite y enlaces de compartición seguros.</p>
+    <div class="hero-buttons">
+      <a href="/login?redirect=/files" class="btn-primary">Subir Archivos</a>
+      <a href="/login?redirect=/admin" class="btn-outline">Panel Admin</a>
+      <a href="/health" class="btn-outline" target="_blank">Estado del Servidor</a>
+    </div>
+  </section>
+
+  <div class="status-bar">
+    <span>🌐 Servidor Web HTTPS</span>
+    <span>📡 SFTP Puerto 2222</span>
+    <span>🗄️ Base de datos SQLite</span>
+    <span>🐳 Docker / Contenedor</span>
+    <span>🔗 Enlaces de compartición</span>
+  </div>
+
+  <section class="features">
+    <div class="card">
+      <div class="card-icon">☁️</div>
+      <h3>Plataforma en la Nube</h3>
+      <p>Despliegue en contenedor Docker compatible con AWS, GCP o Azure. VPS o container según la actividad.</p>
+      <span class="tag tag-blue">Docker Compose</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">📡</div>
+      <h3>SFTP Seguro</h3>
+      <p>Transferencia de archivos cifrada con SSH/SFTP. Autenticación por usuario y contraseña en puerto 2222.</p>
+      <span class="tag tag-green">SFTP Activo</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">📁</div>
+      <h3>Almacenamiento Web</h3>
+      <p>Cliente web para subir, listar, descargar y compartir archivos. API REST protegida con Basic Auth.</p>
+      <span class="tag tag-orange">Cliente-Servidor</span>
+    </div>
+    <div class="card">
+      <div class="card-icon">🗄️</div>
+      <h3>Base de Datos</h3>
+      <p>SQLite registra metadatos: nombre, tamaño, usuario, fecha y enlaces de compartición pública.</p>
+      <span class="tag tag-blue">SQLite</span>
+    </div>
+  </section>
+
+  <footer>Ejercicio 2 — Cloud File Share &nbsp;|&nbsp; Node.js + Express + SFTP + Docker</footer>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gestor de Archivos — Cloud File Share</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0e1a; --card: #1a2235; --border: rgba(99,179,237,0.2);
+      --accent: #63b3ed; --green: #68d391; --red: #fc8181; --text: #e2e8f0; --muted: #718096;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem; border-bottom: 1px solid var(--border);
+      background: rgba(17,24,39,0.9); position: sticky; top: 0; z-index: 10;
+    }
+    nav a { color: var(--accent); text-decoration: none; font-size: 0.85rem; font-weight: 600; }
+    main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+    h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 14px; padding: 2.5rem;
+      text-align: center; margin-bottom: 2rem; transition: border-color 0.2s;
+      cursor: pointer; background: var(--card);
+    }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); }
+    .upload-zone input { display: none; }
+    .btn {
+      display: inline-block; padding: 0.6rem 1.2rem; border-radius: 8px;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--accent); color: #0a0e1a; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-sm { padding: 0.35rem 0.7rem; font-size: 0.75rem; margin-left: 0.4rem; }
+    .btn-share { background: rgba(104,211,145,0.15); color: var(--green); border: 1px solid rgba(104,211,145,0.3); }
+    .btn-delete { background: rgba(252,129,129,0.15); color: var(--red); border: 1px solid rgba(252,129,129,0.3); }
+    .stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.4rem; flex: 1; min-width: 140px; }
+    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+    .stat-value { font-size: 1.4rem; font-weight: 700; margin-top: 0.2rem; }
+    .file-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .file-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.2rem;
+      flex-wrap: wrap; gap: 0.5rem;
+    }
+    .file-info { flex: 1; min-width: 200px; }
+    .file-name { font-weight: 600; font-size: 0.9rem; }
+    .file-meta { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+    .file-actions { display: flex; align-items: center; flex-wrap: wrap; }
+    .empty { text-align: center; color: var(--muted); padding: 3rem; }
+    .toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--card);
+      border: 1px solid var(--green); color: var(--green); padding: 0.8rem 1.2rem;
+      border-radius: 8px; font-size: 0.85rem; display: none; z-index: 100;
+    }
+    .toast.show { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+    .progress { height: 4px; background: var(--border); border-radius: 2px; margin-top: 1rem; display: none; }
+    .progress-bar { height: 100%; background: var(--accent); border-radius: 2px; width: 0; transition: width 0.3s; }
+  </style>
+</head>
+<body>
+  <nav>
+    <span>📁 Gestor de Archivos</span>
+    <div>
+      <a href="/admin">Panel Admin</a> &nbsp;|&nbsp;
+      <a href="/">Inicio</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>Almacenamiento en la Nube</h1>
+    <p class="subtitle">Sube, descarga y comparte archivos de forma segura vía HTTPS y SFTP.</p>
+
+    <div class="stats" id="stats">
+      <div class="stat"><div class="stat-label">Archivos</div><div class="stat-value" id="stat-count">—</div></div>
+      <div class="stat"><div class="stat-label">Espacio usado</div><div class="stat-value" id="stat-size">—</div></div>
+    </div>
+
+    <div class="upload-zone" id="drop-zone">
+      <input type="file" id="file-input" multiple/>
+      <p>📤 Arrastra archivos aquí o <strong>haz clic para seleccionar</strong></p>
+      <p style="color:var(--muted);font-size:0.8rem;margin-top:0.5rem">Máximo 50 MB por archivo</p>
+      <div class="progress" id="progress"><div class="progress-bar" id="progress-bar"></div></div>
+    </div>
+
+    <div class="file-list" id="file-list">
+      <div class="empty">Cargando archivos...</div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/public/auth.js"></script>
+  <script>
+    if (!requireAuth()) throw new Error('redirect');
+
+    const dropZone   = document.getElementById('drop-zone');
+    const fileInput  = document.getElementById('file-input');
+    const fileList   = document.getElementById('file-list');
+    const toast      = document.getElementById('toast');
+    const progress   = document.getElementById('progress');
+    const progressBar = document.getElementById('progress-bar');
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    async function loadFiles() {
+      const res = await authFetch('/api/files');
+      const data = await res.json();
+
+      document.getElementById('stat-count').textContent = data.stats.totalFiles;
+      document.getElementById('stat-size').textContent  = formatSize(data.stats.totalBytes);
+
+      if (!data.files.length) {
+        fileList.innerHTML = '<div class="empty">No hay archivos. Sube el primero arriba.</div>';
+        return;
+      }
+
+      fileList.innerHTML = data.files.map(f => `
+        <div class="file-item" data-id="${f.id}">
+          <div class="file-info">
+            <div class="file-name">📄 ${f.name}</div>
+            <div class="file-meta">${formatSize(f.size)} · ${f.uploadedBy} · ${new Date(f.uploadedAt).toLocaleString('es')}${f.downloadCount ? ' · ' + f.downloadCount + ' descargas' : ''}</div>
+          </div>
+          <div class="file-actions">
+            <button class="btn btn-sm btn-primary" onclick="downloadFile('${f.id}', ${JSON.stringify(f.name)})">Descargar</button>
+            <button class="btn btn-sm btn-share" onclick="shareFile('${f.id}')">Compartir</button>
+            <button class="btn btn-sm btn-delete" onclick="deleteFile('${f.id}')">Eliminar</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function uploadFile(file) {
+      const form = new FormData();
+      form.append('file', file);
+      progress.style.display = 'block';
+      progressBar.style.width = '30%';
+
+      const res = await authFetch('/api/files/upload', { method: 'POST', body: form });
+      progressBar.style.width = '100%';
+
+      setTimeout(() => { progress.style.display = 'none'; progressBar.style.width = '0'; }, 500);
+
+      if (!res.ok) { showToast('Error al subir archivo'); return; }
+      showToast(`"${file.name}" subido correctamente`);
+      loadFiles();
+    }
+
+    async function shareFile(id) {
+      const res = await authFetch(`/api/files/${id}/share`, { method: 'POST' });
+      if (!res.ok) { showToast('Error al generar enlace'); return; }
+      const data = await res.json();
+      await navigator.clipboard.writeText(data.shareUrl);
+      showToast('Enlace copiado al portapapeles');
+      loadFiles();
+    }
+
+    async function deleteFile(id) {
+      if (!confirm('¿Eliminar este archivo?')) return;
+      const res = await authFetch(`/api/files/${id}`, { method: 'DELETE' });
+      if (!res.ok) { showToast('Error al eliminar'); return; }
+      showToast('Archivo eliminado');
+      loadFiles();
+    }
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      [...e.dataTransfer.files].forEach(uploadFile);
+    });
+    fileInput.addEventListener('change', () => {
+      [...fileInput.files].forEach(uploadFile);
+      fileInput.value = '';
+    });
+
+    loadFiles();
+  </script>
+</body>
+</html>

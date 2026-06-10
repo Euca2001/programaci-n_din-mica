@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Iniciar sesión — Cloud File Share</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0e1a; color: #e2e8f0;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    }
+    .card {
+      background: #1a2235; border: 1px solid rgba(99,179,237,0.2);
+      border-radius: 16px; padding: 2.5rem; width: 100%; max-width: 400px;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 0.4rem; }
+    p { color: #718096; font-size: 0.9rem; margin-bottom: 1.8rem; }
+    label { display: block; font-size: 0.8rem; color: #718096; margin-bottom: 0.4rem; }
+    input {
+      width: 100%; padding: 0.75rem 1rem; margin-bottom: 1rem;
+      background: #0a0e1a; border: 1px solid rgba(99,179,237,0.2);
+      border-radius: 8px; color: #e2e8f0; font-size: 0.95rem;
+    }
+    input:focus { outline: none; border-color: #63b3ed; }
+    button {
+      width: 100%; padding: 0.85rem; background: #63b3ed; color: #0a0e1a;
+      border: none; border-radius: 8px; font-weight: 700; font-size: 0.95rem;
+      cursor: pointer; margin-top: 0.5rem;
+    }
+    button:hover { opacity: 0.9; }
+    .error { color: #fc8181; font-size: 0.85rem; margin-top: 0.8rem; display: none; }
+    .back { display: block; text-align: center; margin-top: 1.5rem; color: #718096; font-size: 0.85rem; text-decoration: none; }
+    .back:hover { color: #63b3ed; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>☁️ Iniciar sesión</h1>
+    <p>Accede al gestor de archivos y panel de administración.</p>
+    <form id="login-form">
+      <label for="user">Usuario</label>
+      <input type="text" id="user" name="user" value="admin" autocomplete="username" required/>
+      <label for="pass">Contraseña</label>
+      <input type="password" id="pass" name="pass" autocomplete="current-password" required/>
+      <button type="submit">Entrar</button>
+      <p class="error" id="error">Usuario o contraseña incorrectos.</p>
+    </form>
+    <a href="/" class="back">← Volver al inicio</a>
+  </div>
+
+  <script src="/public/auth.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get('redirect') || '/files';
+
+    if (sessionStorage.getItem('auth')) {
+      location.href = redirect;
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = document.getElementById('user').value;
+      const pass = document.getElementById('pass').value;
+      const errorEl = document.getElementById('error');
+      errorEl.style.display = 'none';
+
+      const auth = btoa(`${user}:${pass}`);
+      const res = await fetch('/api/files', { headers: { Authorization: `Basic ${auth}` } });
+
+      if (res.ok) {
+        saveAuth(user, pass);
+        location.href = redirect;
+      } else {
+        errorEl.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
