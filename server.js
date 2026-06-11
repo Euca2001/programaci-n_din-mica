@@ -10,8 +10,8 @@ const db        = require('./database');
 const fileRoutes = require('./routes/files');
 const { startSftpServer, UPLOADS_DIR } = require('./sftp-server');
 
-// Usamos el puerto que Railway nos asigna, o 8443 por defecto
-const PORT = process.env.PORT || 8443;
+// Railway inyecta el puerto en process.env.PORT
+const PORT = process.env.PORT || 8080;
 const SFTP_PORT = parseInt(process.env.SFTP_PORT || '2222', 10);
 
 const USERS = {
@@ -37,18 +37,11 @@ const sslOptions = {
 
 const app = express();
 
-// NECESARIO para que Railway no cause bucles de redirección
+// Configuración para proxy de Railway
 app.set('trust proxy', 1);
 
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc:   ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      fontSrc:    ["'self'", 'https://fonts.gstatic.com'],
-      scriptSrc:  ["'self'", "'unsafe-inline'"],
-    },
-  },
+  contentSecurityPolicy: false, // Simplificado para evitar conflictos en despliegue
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
 }));
 
@@ -61,15 +54,7 @@ app.get('/login', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'lo
 app.get('/files', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'files.html')));
 
 app.get('/health', (_req, res) => {
-  const stats = db.getStats();
-  res.json({
-    status: 'OK',
-    https: true,
-    sftp: { port: SFTP_PORT, active: true },
-    database: { type: 'SQLite', files: stats.totalFiles, totalBytes: stats.totalBytes },
-    time: new Date().toISOString(),
-    server: 'CloudFileShare/1.0',
-  });
+  res.json({ status: 'OK', time: new Date().toISOString() });
 });
 
 const authMiddleware = basicAuth({
@@ -80,7 +65,7 @@ const authMiddleware = basicAuth({
 app.use('/api/files', authMiddleware, fileRoutes);
 app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'private', 'admin.html')));
 
-// Servidor HTTPS escuchando en '0.0.0.0' para aceptar conexiones externas
+// Levantar servidor vinculado a todas las interfaces (0.0.0.0)
 https.createServer(sslOptions, app).listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Servidor Cloud File Share activo en puerto: ${PORT}`);
 });
