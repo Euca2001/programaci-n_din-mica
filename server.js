@@ -10,7 +10,7 @@ const db        = require('./database');
 const fileRoutes = require('./routes/files');
 const { startSftpServer, UPLOADS_DIR } = require('./sftp-server');
 
-// Railway asigna el puerto mediante la variable de entorno PORT
+// Usamos el puerto que Railway nos asigna, o 8443 por defecto
 const PORT = process.env.PORT || 8443;
 const SFTP_PORT = parseInt(process.env.SFTP_PORT || '2222', 10);
 
@@ -37,7 +37,7 @@ const sslOptions = {
 
 const app = express();
 
-// Configuración de seguridad y proxy para Railway
+// NECESARIO para que Railway no cause bucles de redirección
 app.set('trust proxy', 1);
 
 app.use(helmet({
@@ -80,9 +80,9 @@ const authMiddleware = basicAuth({
 app.use('/api/files', authMiddleware, fileRoutes);
 app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'private', 'admin.html')));
 
-// Servidor HTTPS optimizado para Railway
+// Servidor HTTPS escuchando en '0.0.0.0' para aceptar conexiones externas
 https.createServer(sslOptions, app).listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Servidor en ejecución en puerto: ${PORT}`);
+  console.log(`✅ Servidor Cloud File Share activo en puerto: ${PORT}`);
 });
 
 startSftpServer();
