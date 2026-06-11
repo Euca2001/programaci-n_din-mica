@@ -10,7 +10,7 @@ const db        = require('./database');
 const fileRoutes = require('./routes/files');
 const { startSftpServer, UPLOADS_DIR } = require('./sftp-server');
 
-// Railway inyecta el puerto en process.env.PORT
+// Railway inyecta el puerto en process.env.PORT automáticamente
 const PORT = process.env.PORT || 8080;
 const SFTP_PORT = parseInt(process.env.SFTP_PORT || '2222', 10);
 
@@ -22,7 +22,6 @@ const keyPath  = path.join(__dirname, 'certs', 'server.key');
 const certPath = path.join(__dirname, 'certs', 'server.cert');
 
 if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
-  console.error('❌ ERROR: No se encontraron los certificados SSL.');
   process.exit(1);
 }
 
@@ -37,16 +36,14 @@ const sslOptions = {
 
 const app = express();
 
-// Configuración para proxy de Railway
+// NECESARIO para que Railway no cause conflictos con el protocolo
 app.set('trust proxy', 1);
 
 app.use(helmet({
-  contentSecurityPolicy: false, // Simplificado para evitar conflictos en despliegue
-  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  contentSecurityPolicy: false,
 }));
 
 app.use(express.json());
-
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
@@ -65,9 +62,9 @@ const authMiddleware = basicAuth({
 app.use('/api/files', authMiddleware, fileRoutes);
 app.get('/admin', (_req, res) => res.sendFile(path.join(__dirname, 'private', 'admin.html')));
 
-// Levantar servidor vinculado a todas las interfaces (0.0.0.0)
+// Levantar servidor vinculado a 0.0.0.0
 https.createServer(sslOptions, app).listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Servidor Cloud File Share activo en puerto: ${PORT}`);
+  console.log(`✅ Servidor activo en puerto: ${PORT}`);
 });
 
 startSftpServer();
